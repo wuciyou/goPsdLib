@@ -209,6 +209,7 @@ type LayerRecords struct {
 	ProtectionFlags                uint32
 	Color                          *Color
 	MetadataSetting                *MetadataSetting
+	EffectsLayerInfo               *EffectsLayerInfo
 	ReferencePoint                 []float64
 }
 
@@ -250,6 +251,7 @@ type EffectsLayerInfo struct {
 	Version      uint16
 	EffectsCount uint16
 	Signature    string
+	EffectsLayer map[string]effectsLayer
 }
 
 type MetadataSetting struct {

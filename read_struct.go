@@ -346,23 +346,36 @@ func (layerRecords *LayerRecords) readStructure(doc *document) {
 			layerRecords.ReferencePoint = referencePoint
 		case "vogk":
 
-			descriptorStructure_buf := NewDocumentFromByte(extraDataEntBuf.Next(additionalLength))
 			descriptorStructure := &DescriptorStructure{}
-			descriptorStructure_buf.Next(8)
-			descriptorStructure_buf.readUnicodeString(&descriptorStructure.Name)
-			descriptorStructure_buf.readDynamicString(&descriptorStructure.ClassId)
-			descriptorStructure_buf.readUint32(&descriptorStructure.ItemsNumber)
+			// skip 8 byte
+			// 4 Version ( = 1 for Photoshop CC)
+			// 4 Version ( = 16 )
+			extraDataEntBuf.Next(8)
+			extraDataEntBuf.readUnicodeString(&descriptorStructure.Name)
+			extraDataEntBuf.readDynamicString(&descriptorStructure.ClassId)
+			extraDataEntBuf.readUint32(&descriptorStructure.ItemsNumber)
 
 			itemsNumber := int(descriptorStructure.ItemsNumber)
 			descriptorStructure.Items = make(map[string]*Descriptor)
 
 			for item_index := 0; item_index < itemsNumber; item_index++ {
 				descriptor := &Descriptor{isSkipKey: false}
-				descriptor.readStructure(descriptorStructure_buf)
+				descriptor.readStructure(extraDataEntBuf)
 				descriptorStructure.Items[descriptor.Type] = descriptor
 			}
 
 			layerRecords.VectorOrigination = descriptorStructure
+		case "SoLd": // Placed Layer (replaced by SoLd in Photoshop CS3)
+			extraDataEntBuf.Next(additionalLength)
+		case "PlLd": // Key is 'plLd' . Data is as follows:
+			extraDataEntBuf.Next(additionalLength)
+		case "lrFX":
+			lrFXBuf := NewDocumentFromByte(extraDataEntBuf.Next(additionalLength))
+			// log.Printf("lrFXBuf:%v \n ", lrFXBuf)
+
+			effectsLayerInfo := &EffectsLayerInfo{}
+			effectsLayerInfo.readStructure(lrFXBuf)
+			layerRecords.EffectsLayerInfo = effectsLayerInfo
 
 		default:
 			log.Printf("key[%s]  skip:%d", additionalLayerInformation.Key, additionalLength)
@@ -440,13 +453,30 @@ func (effectsLayerInfo *EffectsLayerInfo) readStructure(doc *document) {
 	doc.readUint16(&effectsLayerInfo.EffectsCount)
 
 	effectsCount := int(effectsLayerInfo.EffectsCount)
+	effectsLayerInfo.EffectsLayer = make(map[string]effectsLayer)
 	for i := 0; i < effectsCount; i++ {
 		effectsLayerInfo.Signature = string(doc.Next(4))
 		if effectsLayerInfo.Signature != "8BIM" {
 			log.Panicf("Wrong blend mode signature of layer [#%s].", effectsLayerInfo.Signature)
 		}
 		key := string(doc.Next(4))
-		log.Printf("Key :%s \n ", key)
+
+		switch key {
+		case "cmnS":
+			commonStateInfo := &CommonStateInfo{}
+			commonStateInfo.readEffectsLayer(doc)
+
+			effectsLayerInfo.EffectsLayer[key] = commonStateInfo
+		case "dsdw":
+			dropAndInnerShadowInfo := &DropAndInnerShadowInfo{}
+			dropAndInnerShadowInfo.readEffectsLayer(doc)
+			log.Printf("dropAndInnerShadowInfo:%+v", dropAndInnerShadowInfo)
+			effectsLayerInfo.EffectsLayer[key] = dropAndInnerShadowInfo
+		default:
+			log.Printf("UnKnown EffectsLayerInfo Key :%s \n ", key)
+			return
+		}
+
 	}
 
 }
