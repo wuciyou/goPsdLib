@@ -5,7 +5,8 @@ import (
 	"log"
 )
 
-var filename = "./lcd1602.psd"
+// var filename = "./lcd1602.psd"
+var filename = "/Users/ayou/Downloads/message.psd"
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
