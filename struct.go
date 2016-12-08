@@ -144,6 +144,10 @@ type OffsetStructureEntity struct {
 type LongEntity struct {
 	Value uint64
 }
+type UnitFloatStructureEntity struct {
+	UnitsValue  string
+	ActualValue float64
+}
 type ListStructureEntity struct {
 	ItemsNumber    uint32
 	DescriptorList []*Descriptor
@@ -198,14 +202,14 @@ type LayerRecords struct {
 	LayerName                      string
 	LayerNameSourceSetting         string
 	AdditionalLayerInformation     *AdditionalLayerInformation
-
-	isBlendClippedElements  bool
-	isBlendInteriorElements bool
-	isKnockout              bool
-	ProtectionFlags         uint32
-	Color                   *Color
-	MetadataSetting         *MetadataSetting
-	ReferencePoint          []float64
+	VectorOrigination              *DescriptorStructure
+	isBlendClippedElements         bool
+	isBlendInteriorElements        bool
+	isKnockout                     bool
+	ProtectionFlags                uint32
+	Color                          *Color
+	MetadataSetting                *MetadataSetting
+	ReferencePoint                 []float64
 }
 
 type ChannelInformation struct {

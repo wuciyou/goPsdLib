@@ -123,7 +123,7 @@ func (doc *document) readUint64(u *uint64) {
 	*u = new_data
 }
 
-func (doc *document) readInt64(u *float64) {
+func (doc *document) readFloat64(u *float64) {
 
 	if err := binary.Read(doc, binary.BigEndian, u); err != nil {
 		panic(err)

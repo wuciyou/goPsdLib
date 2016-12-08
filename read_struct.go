@@ -55,6 +55,11 @@ func (descriptor *Descriptor) readStructure(doc *document) {
 		descriptor.Value = list
 	case "doub": // Double
 	case "UntF": // Unit float
+		// doc.Next(12)
+		unitFloatStructureEntity := &UnitFloatStructureEntity{}
+		unitFloatStructureEntity.readStructure(doc)
+		descriptor.Value = unitFloatStructureEntity
+
 	case "TEXT": // String
 		stringStructure := &StringStructureEntity{}
 		stringStructure.readStructure(doc)
@@ -77,6 +82,7 @@ func (descriptor *Descriptor) readStructure(doc *document) {
 	case "GlbC": // Class
 	case "alis": // Alias
 	case "tdta": // Raw Data
+
 	default:
 		log.Panicf("Unknown OSType key [%s] in entity [%s]", descriptor.Key, descriptor.Type)
 	}
@@ -172,6 +178,11 @@ func (str *StringStructureEntity) readStructure(doc *document) {
 
 func (boolE *BooleanStructureEntity) readStructure(doc *document) {
 	doc.readBool(&boolE.isTrue)
+}
+
+func (float *UnitFloatStructureEntity) readStructure(doc *document) {
+	float.UnitsValue = string(doc.Next(4))
+	doc.readFloat64(&float.ActualValue)
 }
 
 /****************************************************************
@@ -330,9 +341,29 @@ func (layerRecords *LayerRecords) readStructure(doc *document) {
 			layerRecords.MetadataSetting.readStructure(extraDataEntBuf)
 		case "fxrp":
 			referencePoint := make([]float64, 2)
-			extraDataEntBuf.readInt64(&referencePoint[0])
-			extraDataEntBuf.readInt64(&referencePoint[1])
+			extraDataEntBuf.readFloat64(&referencePoint[0])
+			extraDataEntBuf.readFloat64(&referencePoint[1])
 			layerRecords.ReferencePoint = referencePoint
+		case "vogk":
+
+			descriptorStructure_buf := NewDocumentFromByte(extraDataEntBuf.Next(additionalLength))
+			descriptorStructure := &DescriptorStructure{}
+			descriptorStructure_buf.Next(8)
+			descriptorStructure_buf.readUnicodeString(&descriptorStructure.Name)
+			descriptorStructure_buf.readDynamicString(&descriptorStructure.ClassId)
+			descriptorStructure_buf.readUint32(&descriptorStructure.ItemsNumber)
+
+			itemsNumber := int(descriptorStructure.ItemsNumber)
+			descriptorStructure.Items = make(map[string]*Descriptor)
+
+			for item_index := 0; item_index < itemsNumber; item_index++ {
+				descriptor := &Descriptor{isSkipKey: false}
+				descriptor.readStructure(descriptorStructure_buf)
+				descriptorStructure.Items[descriptor.Type] = descriptor
+			}
+
+			layerRecords.VectorOrigination = descriptorStructure
+
 		default:
 			log.Printf("key[%s]  skip:%d", additionalLayerInformation.Key, additionalLength)
 			extraDataEntBuf.Next(additionalLength)
